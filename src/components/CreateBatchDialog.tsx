@@ -2,18 +2,28 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
-import type { HouseSummary, Stage } from "@/lib/types";
+import type { Greenhouse, Plant, Stage } from "@/lib/types";
 import { STAGE_LABEL, STAGES, todayISO } from "@/lib/types";
 
 type Props = {
-  houses: HouseSummary[];
-  defaultHouseId: number | null;
+  greenhouses: Greenhouse[];
+  plants: Plant[];
+  defaultGreenhouseId: number | null;
+  defaultPlantId: number | null;
   onClose: () => void;
   onCreated: (id: number) => void;
 };
 
-export function CreateBatchDialog({ houses, defaultHouseId, onClose, onCreated }: Props) {
-  const [houseId, setHouseId] = useState(defaultHouseId ?? houses[0]?.id ?? 0);
+export function CreateBatchDialog({
+  greenhouses,
+  plants,
+  defaultGreenhouseId,
+  defaultPlantId,
+  onClose,
+  onCreated,
+}: Props) {
+  const [greenhouseId, setGreenhouseId] = useState(defaultGreenhouseId ?? greenhouses[0]?.id ?? 0);
+  const [plantId, setPlantId] = useState(defaultPlantId ?? plants[0]?.id ?? 0);
   const [plantedOn, setPlantedOn] = useState(todayISO);
   const [stage, setStage] = useState<Stage>("SEEDLING");
   const [quantity, setQuantity] = useState("20");
@@ -32,8 +42,12 @@ export function CreateBatchDialog({ houses, defaultHouseId, onClose, onCreated }
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const pots = Number(quantity);
-    if (!houseId) {
-      setError("하우스를 선택해 주세요.");
+    if (!greenhouseId) {
+      setError("온실을 선택해 주세요.");
+      return;
+    }
+    if (!plantId) {
+      setError("식물을 선택해 주세요.");
       return;
     }
     if (!Number.isInteger(pots) || pots < 1) {
@@ -43,7 +57,7 @@ export function CreateBatchDialog({ houses, defaultHouseId, onClose, onCreated }
     setPending(true);
     setError(null);
     try {
-      const created = await api.createBatch({ houseId, plantedOn, stage, quantity: pots, note });
+      const created = await api.createBatch({ greenhouseId, plantId, plantedOn, stage, quantity: pots, note });
       onCreated(created.id);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "배치를 등록하지 못했습니다.");
@@ -71,16 +85,28 @@ export function CreateBatchDialog({ houses, defaultHouseId, onClose, onCreated }
           </button>
         </header>
 
-        <label>
-          하우스
-          <select value={houseId} onChange={(event) => setHouseId(Number(event.target.value))}>
-            {houses.map((house) => (
-              <option key={house.id} value={house.id}>
-                {house.name} · {house.cropName}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="split">
+          <label>
+            온실
+            <select value={greenhouseId} onChange={(event) => setGreenhouseId(Number(event.target.value))}>
+              {greenhouses.map((greenhouse) => (
+                <option key={greenhouse.id} value={greenhouse.id}>
+                  {greenhouse.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            식물
+            <select value={plantId} onChange={(event) => setPlantId(Number(event.target.value))}>
+              {plants.map((plant) => (
+                <option key={plant.id} value={plant.id}>
+                  {plant.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
         <div className="split">
           <label>

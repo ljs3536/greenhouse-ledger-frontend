@@ -1,4 +1,4 @@
-import type { Batch, BatchDetail, MovementType, Stage, Summary } from "./types";
+import type { Batch, BatchDetail, Greenhouse, MovementType, Plant, Stage, Summary } from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
@@ -32,10 +32,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   summary: () => request<Summary>("/api/summary"),
+  greenhouses: () => request<Greenhouse[]>("/api/greenhouses"),
+  createGreenhouse: (name: string) =>
+    request<{ id: number }>("/api/greenhouses", { method: "POST", body: JSON.stringify({ name }) }),
+  updateGreenhouse: (id: number, name: string) =>
+    request<{ ok: boolean }>(`/api/greenhouses/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
+  deleteGreenhouse: (id: number) => request<{ ok: boolean }>(`/api/greenhouses/${id}`, { method: "DELETE" }),
+  plants: () => request<Plant[]>("/api/plants"),
+  createPlant: (input: { name: string; dayTemp: string; nightTemp: string; lightNote: string }) =>
+    request<{ id: number }>("/api/plants", { method: "POST", body: JSON.stringify(input) }),
+  updatePlant: (id: number, input: { name: string; dayTemp: string; nightTemp: string; lightNote: string }) =>
+    request<{ ok: boolean }>(`/api/plants/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+  deletePlant: (id: number) => request<{ ok: boolean }>(`/api/plants/${id}`, { method: "DELETE" }),
   batches: () => request<Batch[]>("/api/batches"),
   batch: (id: number) => request<BatchDetail>(`/api/batches/${id}`),
   createBatch: (input: {
-    houseId: number;
+    greenhouseId: number;
+    plantId: number;
     plantedOn: string;
     stage: Stage;
     quantity: number;

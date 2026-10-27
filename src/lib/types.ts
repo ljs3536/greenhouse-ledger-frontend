@@ -18,22 +18,40 @@ export const MOVEMENT_LABEL: Record<MovementType, string> = {
   SALE: "판매",
 };
 
-export type HouseSummary = {
+export type Greenhouse = {
   id: number;
-  code: string;
   name: string;
-  cropCode: string;
-  cropName: string;
-  dayTemp: string;
-  nightTemp: string;
-  lightNote: string;
   batchCount: number;
+};
+
+export type Plant = {
+  id: number;
+  name: string;
+  dayTemp: string | null;
+  nightTemp: string | null;
+  lightNote: string | null;
+  batchCount: number;
+};
+
+export type GreenhouseSummary = Greenhouse & {
   totalQuantity: number;
   sellableQuantity: number;
 };
 
+export type PlantSummary = Plant & {
+  totalQuantity: number;
+  sellableQuantity: number;
+};
+
+export type StageQuantity = {
+  stage: Stage;
+  quantity: number;
+};
+
 export type Summary = {
-  houses: HouseSummary[];
+  greenhouses: GreenhouseSummary[];
+  plants: PlantSummary[];
+  stages: StageQuantity[];
   totalQuantity: number;
   sellableQuantity: number;
   batchCount: number;
@@ -41,10 +59,10 @@ export type Summary = {
 
 export type Batch = {
   id: number;
-  houseId: number;
-  houseName: string;
-  cropCode: string;
-  cropName: string;
+  greenhouseId: number;
+  greenhouseName: string;
+  plantId: number;
+  plantName: string;
   plantedOn: string;
   stage: Stage;
   note: string | null;
@@ -88,4 +106,13 @@ export function daysSince(value: string): number {
 
 export function formatPots(value: number): string {
   return `${value.toLocaleString("ko-KR")}포트`;
+}
+
+export function climateText(plant: Pick<Plant, "dayTemp" | "nightTemp" | "lightNote">): string | null {
+  const parts = [
+    plant.dayTemp ? `낮 ${plant.dayTemp}` : null,
+    plant.nightTemp ? `밤 ${plant.nightTemp}` : null,
+    plant.lightNote,
+  ].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join(" · ") : null;
 }

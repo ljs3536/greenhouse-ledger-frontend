@@ -1,18 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { BatchPanel } from "@/components/BatchPanel";
 import { CreateBatchDialog } from "@/components/CreateBatchDialog";
 import { api } from "@/lib/api";
-import type { Batch, BatchDetail, Stage, Summary } from "@/lib/types";
+import type { Batch, BatchDetail, Greenhouse, Plant, Stage } from "@/lib/types";
 import { STAGE_LABEL, STAGES, daysSince, formatDate, formatPots } from "@/lib/types";
 
-export function LedgerApp() {
-  const [summary, setSummary] = useState<Summary | null>(null);
+function initialId(value: string | null): number | "all" {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : "all";
+}
+
+export function BatchesPage() {
+  const params = useSearchParams();
+  const [greenhouses, setGreenhouses] = useState<Greenhouse[]>([]);
+  const [plants, setPlants] = useState<Plant[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [detail, setDetail] = useState<BatchDetail | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [houseFilter, setHouseFilter] = useState<number | "all">("all");
+  const [greenhouseFilter, setGreenhouseFilter] = useState<number | "all">(() => initialId(params.get("greenhouse")));
+  const [plantFilter, setPlantFilter] = useState<number | "all">(() => initialId(params.get("plant")));
   const [stageFilter, setStageFilter] = useState<Stage | "all">("all");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,8 +29,13 @@ export function LedgerApp() {
   const [version, setVersion] = useState(0);
 
   const reload = useCallback(async () => {
-    const [nextSummary, nextBatches] = await Promise.all([api.summary(), api.batches()]);
-    setSummary(nextSummary);
+    const [nextGreenhouses, nextPlants, nextBatches] = await Promise.all([
+      api.greenhouses(),
+      api.plants(),
+      api.batches(),
+    ]);
+    setGreenhouses(nextGreenhouses);
+    setPlants(nextPlants);
     setBatches(nextBatches);
   }, []);
 
@@ -29,7 +43,7 @@ export function LedgerApp() {
     let cancelled = false;
     reload()
       .catch((caught: unknown) => {
-        if (!cancelled) setError(caught instanceof Error ? caught.message : "장부를 불러오지 못했습니다.");
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "배치를 불러오지 못했습니다.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -63,24 +77,22 @@ export function LedgerApp() {
   }
 
   const visible = batches.filter((batch) => {
-    if (houseFilter !== "all" && batch.houseId !== houseFilter) return false;
+    if (greenhouseFilter !== "all" && batch.greenhouseId !== greenhouseFilter) return false;
+    if (plantFilter !== "all" && batch.plantId !== plantFilter) return false;
     if (stageFilter !== "all" && batch.stage !== stageFilter) return false;
     return true;
   });
 
-  const houses = summary?.houses ?? [];
+  const canCreate = greenhouses.length > 0 && plants.length > 0;
 
   return (
-    <div className="page">
-      <header className="top">
+    <>
+      <header className="page-head">
         <div>
-          <p className="eyebrow">Greenhouse ledger</p>
-          <h1>네 동의 장부</h1>
-          <p className="lede">
-            심비디움, 호접란, 덴파레, 온시디움. 동마다 몇 포트를 어느 단계까지 키우고 있는지 기록합니다.
-          </p>
+          <h1>배치</h1>
+          <p className="lede">심은 날과 단계, 입고·폐기·판매를 배치로 남깁니다.</p>
         </div>
-        <button type="button" className="primary" onClick={() => setCreating(true)} disabled={houses.length === 0}>
+        <button type="button" className="primary" onClick={() => setCreating(true)} disabled={!canCreate}>
           배치 등록
         </button>
       </header>
@@ -94,49 +106,45 @@ export function LedgerApp() {
         </div>
       ) : null}
 
-      <section className="stats" aria-label="전체 수량">
-        <article>
-          <span>전체 포트</span>
-          <strong>{loading ? "…" : formatPots(summary?.totalQuantity ?? 0)}</strong>
-        </article>
-        <article>
-          <span>출하 가능</span>
-          <strong>{loading ? "…" : formatPots(summary?.sellableQuantity ?? 0)}</strong>
-        </article>
-        <article>
-          <span>배치</span>
-          <strong>{loading ? "…" : `${summary?.batchCount ?? 0}개`}</strong>
-        </article>
-      </section>
-
-      <section className="house-grid" aria-label="비닐하우스">
-        {houses.map((house) => (
-          <button
-            key={house.id}
-            type="button"
-            className={`house-card crop-${house.cropCode} ${houseFilter === house.id ? "is-selected" : ""}`}
-            aria-pressed={houseFilter === house.id}
-            onClick={() => setHouseFilter((current) => (current === house.id ? "all" : house.id))}
-          >
-            <div className="house-top">
-              <span>{house.name}</span>
-              <em>{house.batchCount}배치</em>
-            </div>
-            <h2>{house.cropName}</h2>
-            <p className="pots">{formatPots(house.totalQuantity)}</p>
-            <p className="sellable">출하 가능 {formatPots(house.sellableQuantity)}</p>
-            <p className="climate">
-              기준 환경 · 낮 {house.dayTemp} · 밤 {house.nightTemp} · {house.lightNote}
-            </p>
-          </button>
-        ))}
-      </section>
+      {!loading && !canCreate ? (
+        <p className="empty-note">배치를 등록하려면 온실과 식물이 하나씩은 있어야 합니다.</p>
+      ) : null}
 
       <div className="workspace">
         <section className="sheet">
-          <div className="sheet-head">
-            <h2>배치</h2>
-            <label className="stage-filter">
+          <div className="sheet-head filters">
+            <h2>목록</h2>
+            <label>
+              온실
+              <select
+                value={greenhouseFilter}
+                onChange={(event) =>
+                  setGreenhouseFilter(event.target.value === "all" ? "all" : Number(event.target.value))
+                }
+              >
+                <option value="all">전체</option>
+                {greenhouses.map((greenhouse) => (
+                  <option key={greenhouse.id} value={greenhouse.id}>
+                    {greenhouse.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              식물
+              <select
+                value={plantFilter}
+                onChange={(event) => setPlantFilter(event.target.value === "all" ? "all" : Number(event.target.value))}
+              >
+                <option value="all">전체</option>
+                {plants.map((plant) => (
+                  <option key={plant.id} value={plant.id}>
+                    {plant.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
               단계
               <select value={stageFilter} onChange={(event) => setStageFilter(event.target.value as Stage | "all")}>
                 <option value="all">전체</option>
@@ -153,8 +161,8 @@ export function LedgerApp() {
             <table>
               <thead>
                 <tr>
-                  <th>품종</th>
-                  <th>동</th>
+                  <th>식물</th>
+                  <th>온실</th>
                   <th>심은 날</th>
                   <th>경과일</th>
                   <th>단계</th>
@@ -165,24 +173,18 @@ export function LedgerApp() {
                 {visible.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="empty-cell">
-                      {loading
-                        ? "장부를 불러오는 중입니다."
-                        : "이 조건에 해당하는 배치가 없습니다. 배치 등록으로 지금 키우는 포트를 남기면 됩니다."}
+                      {loading ? "배치를 불러오는 중입니다." : "이 조건에 해당하는 배치가 없습니다."}
                     </td>
                   </tr>
                 ) : (
                   visible.map((batch) => (
-                    <tr
-                      key={batch.id}
-                      className={batch.id === selectedId ? "is-selected" : ""}
-                      onClick={() => setSelectedId(batch.id)}
-                    >
+                    <tr key={batch.id} className={batch.id === selectedId ? "is-selected" : ""}>
                       <td>
                         <button type="button" className="row-button" onClick={() => setSelectedId(batch.id)}>
-                          {batch.cropName}
+                          {batch.plantName}
                         </button>
                       </td>
-                      <td>{batch.houseName}</td>
+                      <td>{batch.greenhouseName}</td>
                       <td>{formatDate(batch.plantedOn)}</td>
                       <td>{daysSince(batch.plantedOn)}일</td>
                       <td>
@@ -209,8 +211,10 @@ export function LedgerApp() {
 
       {creating ? (
         <CreateBatchDialog
-          houses={houses}
-          defaultHouseId={houseFilter === "all" ? (houses[0]?.id ?? null) : houseFilter}
+          greenhouses={greenhouses}
+          plants={plants}
+          defaultGreenhouseId={greenhouseFilter === "all" ? (greenhouses[0]?.id ?? null) : greenhouseFilter}
+          defaultPlantId={plantFilter === "all" ? (plants[0]?.id ?? null) : plantFilter}
           onClose={() => setCreating(false)}
           onCreated={(id) => {
             setSelectedId(id);
@@ -219,6 +223,6 @@ export function LedgerApp() {
           }}
         />
       ) : null}
-    </div>
+    </>
   );
 }

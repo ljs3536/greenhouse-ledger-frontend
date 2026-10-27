@@ -1,5 +1,5 @@
-import { LedgerApp } from "@/components/LedgerApp";
+import { MonitorPage } from "@/components/MonitorPage";
 
 export default function Home() {
-  return <LedgerApp />;
+  return <MonitorPage />;
 }

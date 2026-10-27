@@ -90,7 +90,7 @@ function BatchEditor({
   }
 
   async function onDelete() {
-    const confirmed = window.confirm(`${detail.cropName} 배치와 수량 기록을 삭제합니다.`);
+    const confirmed = window.confirm(`${detail.plantName} 배치와 수량 기록을 삭제합니다.`);
     if (!confirmed) return;
     setPending(true);
     setError(null);
@@ -105,8 +105,8 @@ function BatchEditor({
 
   return (
     <aside className="panel">
-      <p className="eyebrow">{detail.houseName}</p>
-      <h2>{detail.cropName}</h2>
+      <p className="eyebrow">{detail.greenhouseName}</p>
+      <h2>{detail.plantName}</h2>
       <p className="meta">
         심은 날 {formatDate(detail.plantedOn)} · {daysSince(detail.plantedOn)}일째
       </p>
