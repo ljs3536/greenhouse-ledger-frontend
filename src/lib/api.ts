@@ -1,5 +1,16 @@
 import type { Batch, BatchDetail, Greenhouse, MovementType, Plant, Stage, Summary } from "./types";
 
+type PlantWrite = {
+  name: string;
+  dayTemp: string;
+  nightTemp: string;
+  lightNote: string;
+  seedlingDays: number | null;
+  growthDays: number | null;
+  spikeDays: number | null;
+  bloomDays: number | null;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
@@ -39,9 +50,9 @@ export const api = {
     request<{ ok: boolean }>(`/api/greenhouses/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
   deleteGreenhouse: (id: number) => request<{ ok: boolean }>(`/api/greenhouses/${id}`, { method: "DELETE" }),
   plants: () => request<Plant[]>("/api/plants"),
-  createPlant: (input: { name: string; dayTemp: string; nightTemp: string; lightNote: string }) =>
+  createPlant: (input: PlantWrite) =>
     request<{ id: number }>("/api/plants", { method: "POST", body: JSON.stringify(input) }),
-  updatePlant: (id: number, input: { name: string; dayTemp: string; nightTemp: string; lightNote: string }) =>
+  updatePlant: (id: number, input: PlantWrite) =>
     request<{ ok: boolean }>(`/api/plants/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
   deletePlant: (id: number) => request<{ ok: boolean }>(`/api/plants/${id}`, { method: "DELETE" }),
   batches: () => request<Batch[]>("/api/batches"),

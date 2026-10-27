@@ -30,7 +30,22 @@ export type Plant = {
   dayTemp: string | null;
   nightTemp: string | null;
   lightNote: string | null;
+  seedlingDays: number | null;
+  growthDays: number | null;
+  spikeDays: number | null;
+  bloomDays: number | null;
   batchCount: number;
+};
+
+export type AttentionItem = {
+  batchId: number;
+  greenhouseId: number;
+  greenhouseName: string;
+  plantName: string;
+  stage: Stage;
+  quantity: number;
+  daysInStage: number;
+  referenceDays: number | null;
 };
 
 export type GreenhouseSummary = Greenhouse & {
@@ -49,6 +64,7 @@ export type StageQuantity = {
 };
 
 export type Summary = {
+  attention: AttentionItem[];
   greenhouses: GreenhouseSummary[];
   plants: PlantSummary[];
   stages: StageQuantity[];
@@ -106,6 +122,18 @@ export function daysSince(value: string): number {
 
 export function formatPots(value: number): string {
   return `${value.toLocaleString("ko-KR")}포트`;
+}
+
+export function stageDaysText(
+  plant: Pick<Plant, "seedlingDays" | "growthDays" | "spikeDays" | "bloomDays">,
+): string | null {
+  const parts = [
+    plant.seedlingDays ? `육묘 ${plant.seedlingDays}일` : null,
+    plant.growthDays ? `생장 ${plant.growthDays}일` : null,
+    plant.spikeDays ? `꽃대 ${plant.spikeDays}일` : null,
+    plant.bloomDays ? `개화 ${plant.bloomDays}일` : null,
+  ].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 export function climateText(plant: Pick<Plant, "dayTemp" | "nightTemp" | "lightNote">): string | null {

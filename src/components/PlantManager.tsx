@@ -3,16 +3,68 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
 import type { Plant } from "@/lib/types";
-import { climateText } from "@/lib/types";
+import { climateText, stageDaysText } from "@/lib/types";
 
 type PlantInput = {
   name: string;
   dayTemp: string;
   nightTemp: string;
   lightNote: string;
+  seedlingDays: string;
+  growthDays: string;
+  spikeDays: string;
+  bloomDays: string;
 };
 
-const EMPTY: PlantInput = { name: "", dayTemp: "", nightTemp: "", lightNote: "" };
+const EMPTY: PlantInput = {
+  name: "",
+  dayTemp: "",
+  nightTemp: "",
+  lightNote: "",
+  seedlingDays: "",
+  growthDays: "",
+  spikeDays: "",
+  bloomDays: "",
+};
+
+const DAY_FIELDS = [
+  ["seedlingDays", "육묘"],
+  ["growthDays", "생장"],
+  ["spikeDays", "꽃대"],
+  ["bloomDays", "개화"],
+] as const;
+
+function toPayload(form: PlantInput) {
+  return {
+    name: form.name,
+    dayTemp: form.dayTemp,
+    nightTemp: form.nightTemp,
+    lightNote: form.lightNote,
+    seedlingDays: parseDays(form.seedlingDays),
+    growthDays: parseDays(form.growthDays),
+    spikeDays: parseDays(form.spikeDays),
+    bloomDays: parseDays(form.bloomDays),
+  };
+}
+
+function parseDays(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return Number(trimmed);
+}
+
+function fromPlant(item: Plant): PlantInput {
+  return {
+    name: item.name,
+    dayTemp: item.dayTemp ?? "",
+    nightTemp: item.nightTemp ?? "",
+    lightNote: item.lightNote ?? "",
+    seedlingDays: item.seedlingDays == null ? "" : String(item.seedlingDays),
+    growthDays: item.growthDays == null ? "" : String(item.growthDays),
+    spikeDays: item.spikeDays == null ? "" : String(item.spikeDays),
+    bloomDays: item.bloomDays == null ? "" : String(item.bloomDays),
+  };
+}
 
 export function PlantManager() {
   const [items, setItems] = useState<Plant[]>([]);
@@ -44,7 +96,7 @@ export function PlantManager() {
     setPending(true);
     setError(null);
     try {
-      await api.createPlant(form);
+      await api.createPlant(toPayload(form));
       setForm(EMPTY);
       await load();
     } catch (caught) {
@@ -59,7 +111,9 @@ export function PlantManager() {
       <header className="page-head">
         <div>
           <h1>식물</h1>
-          <p className="lede">관리하는 식물을 추가하거나 빼 둡니다. 다른 식물을 들이면 여기에 이름을 넣으면 됩니다.</p>
+          <p className="lede">
+            관리하는 식물을 추가하거나 빼 둡니다. 단계별 기준 일수를 적으면, 그 기간을 넘긴 배치가 모니터링에 나타납니다.
+          </p>
         </div>
       </header>
 
@@ -73,6 +127,7 @@ export function PlantManager() {
       ) : null}
 
       <form className="catalog-form plant-form" onSubmit={onCreate}>
+        <div className="form-row plant-main">
         <label>
           식물 이름
           <input
@@ -113,6 +168,23 @@ export function PlantManager() {
         <button type="submit" className="primary" disabled={pending}>
           식물 추가
         </button>
+        </div>
+        <div className="day-fields">
+          {DAY_FIELDS.map(([key, label]) => (
+            <label key={key}>
+              {label} 기준 일수
+              <input
+                type="number"
+                min={1}
+                max={3650}
+                step={1}
+                placeholder="예: 90"
+                value={form[key]}
+                onChange={(event) => setForm({ ...form, [key]: event.target.value })}
+              />
+            </label>
+          ))}
+        </div>
       </form>
 
       <section className="sheet">
@@ -147,21 +219,17 @@ function PlantRow({
   onChanged: () => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<PlantInput>({
-    name: item.name,
-    dayTemp: item.dayTemp ?? "",
-    nightTemp: item.nightTemp ?? "",
-    lightNote: item.lightNote ?? "",
-  });
+  const [form, setForm] = useState<PlantInput>(() => fromPlant(item));
   const [pending, setPending] = useState(false);
   const climate = climateText(item);
+  const stageDays = stageDaysText(item);
 
   async function onSave(event: FormEvent) {
     event.preventDefault();
     setPending(true);
     onError(null);
     try {
-      await api.updatePlant(item.id, form);
+      await api.updatePlant(item.id, toPayload(form));
       setEditing(false);
       await onChanged();
     } catch (caught) {
@@ -208,6 +276,18 @@ function PlantRow({
             placeholder="광"
             onChange={(event) => setForm({ ...form, lightNote: event.target.value })}
           />
+          {DAY_FIELDS.map(([key, label]) => (
+            <input
+              key={key}
+              type="number"
+              min={1}
+              max={3650}
+              step={1}
+              placeholder={`${label} 일수`}
+              value={form[key]}
+              onChange={(event) => setForm({ ...form, [key]: event.target.value })}
+            />
+          ))}
           <button type="submit" className="primary" disabled={pending}>
             저장
           </button>
@@ -225,6 +305,7 @@ function PlantRow({
         <strong>{item.name}</strong>
         <span>
           {item.batchCount}배치{climate ? ` · ${climate}` : ""}
+          {stageDays ? ` · ${stageDays}` : ""}
         </span>
       </div>
       <div className="row-actions">

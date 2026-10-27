@@ -37,11 +37,47 @@ export function MonitorPage() {
       <header className="page-head">
         <div>
           <h1>모니터링</h1>
-          <p className="lede">온실과 식물별 포트 수, 지금 출하할 수 있는 수량을 봅니다.</p>
+          <p className="lede">오늘 확인할 배치와 온실·식물별 수량을 봅니다.</p>
         </div>
       </header>
 
       {error ? <p className="banner">{error}</p> : null}
+
+      <section className="block" aria-label="오늘 볼 배치">
+        <div className="block-head">
+          <h2>오늘 볼 배치</h2>
+        </div>
+        {loading ? (
+          <p className="empty-note">현황을 불러오는 중입니다.</p>
+        ) : (summary?.attention?.length ?? 0) === 0 ? (
+          <p className="empty-note">
+            기준 일수를 넘긴 배치와 출하 가능한 배치가 없습니다. 식물에 단계별 일수를 적으면 오래 머문 배치가 여기에 모입니다.
+          </p>
+        ) : (
+          <ul className="attention">
+            {summary?.attention.map((item) => (
+              <li key={item.batchId}>
+                <Link
+                  href={`/batches?greenhouse=${item.greenhouseId}`}
+                  className={item.stage === "READY" ? "ready" : "overdue"}
+                >
+                  <span>
+                    <strong>
+                      {item.greenhouseName} · {item.plantName}
+                    </strong>
+                    <em>
+                      {item.stage === "READY"
+                        ? `출하 가능 · 이 단계 ${item.daysInStage}일`
+                        : `${STAGE_LABEL[item.stage]} ${item.daysInStage}일 · 기준 ${item.referenceDays}일`}
+                    </em>
+                  </span>
+                  <b>{formatPots(item.quantity)}</b>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="stats" aria-label="전체 수량">
         <article>
