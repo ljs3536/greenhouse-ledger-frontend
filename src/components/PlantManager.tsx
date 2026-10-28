@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
 import type { Plant } from "@/lib/types";
-import { climateText, stageDaysText } from "@/lib/types";
+import { climateText, stageDaysText, thresholdText } from "@/lib/types";
 
 type PlantInput = {
   name: string;
@@ -14,6 +14,14 @@ type PlantInput = {
   growthDays: string;
   spikeDays: string;
   bloomDays: string;
+  dayTempMin: string;
+  dayTempMax: string;
+  nightTempMin: string;
+  nightTempMax: string;
+  humidityMin: string;
+  humidityMax: string;
+  lightMin: string;
+  lightMax: string;
 };
 
 const EMPTY: PlantInput = {
@@ -25,7 +33,22 @@ const EMPTY: PlantInput = {
   growthDays: "",
   spikeDays: "",
   bloomDays: "",
+  dayTempMin: "",
+  dayTempMax: "",
+  nightTempMin: "",
+  nightTempMax: "",
+  humidityMin: "",
+  humidityMax: "",
+  lightMin: "",
+  lightMax: "",
 };
+
+const RANGE_FIELDS = [
+  ["dayTempMin", "dayTempMax", "낮 온도 °C", "0.1", "-20", "60"],
+  ["nightTempMin", "nightTempMax", "밤 온도 °C", "0.1", "-20", "60"],
+  ["humidityMin", "humidityMax", "습도 %", "1", "0", "100"],
+  ["lightMin", "lightMax", "광 lx", "1", "0", "200000"],
+] as const;
 
 const DAY_FIELDS = [
   ["seedlingDays", "육묘"],
@@ -44,7 +67,22 @@ function toPayload(form: PlantInput) {
     growthDays: parseDays(form.growthDays),
     spikeDays: parseDays(form.spikeDays),
     bloomDays: parseDays(form.bloomDays),
+    dayTempMin: parseOptional(form.dayTempMin),
+    dayTempMax: parseOptional(form.dayTempMax),
+    nightTempMin: parseOptional(form.nightTempMin),
+    nightTempMax: parseOptional(form.nightTempMax),
+    humidityMin: parseOptional(form.humidityMin),
+    humidityMax: parseOptional(form.humidityMax),
+    lightMin: parseOptional(form.lightMin),
+    lightMax: parseOptional(form.lightMax),
   };
+}
+
+function parseOptional(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const number = Number(trimmed);
+  return Number.isFinite(number) ? number : null;
 }
 
 function parseDays(value: string): number | null {
@@ -63,7 +101,35 @@ function fromPlant(item: Plant): PlantInput {
     growthDays: item.growthDays == null ? "" : String(item.growthDays),
     spikeDays: item.spikeDays == null ? "" : String(item.spikeDays),
     bloomDays: item.bloomDays == null ? "" : String(item.bloomDays),
+    dayTempMin: item.dayTempMin == null ? "" : String(item.dayTempMin),
+    dayTempMax: item.dayTempMax == null ? "" : String(item.dayTempMax),
+    nightTempMin: item.nightTempMin == null ? "" : String(item.nightTempMin),
+    nightTempMax: item.nightTempMax == null ? "" : String(item.nightTempMax),
+    humidityMin: item.humidityMin == null ? "" : String(item.humidityMin),
+    humidityMax: item.humidityMax == null ? "" : String(item.humidityMax),
+    lightMin: item.lightMin == null ? "" : String(item.lightMin),
+    lightMax: item.lightMax == null ? "" : String(item.lightMax),
   };
+}
+
+function RangeFields({ form, onChange }: { form: PlantInput; onChange: (key: keyof PlantInput, value: string) => void }) {
+  return (
+    <div className="range-fields">
+      {RANGE_FIELDS.map(([minKey, maxKey, label, step, min, max]) => (
+        <div className="range-pair" key={minKey}>
+          <span>{label}</span>
+          <label>
+            최소
+            <input type="number" inputMode="decimal" step={step} min={min} max={max} value={form[minKey]} onChange={(event) => onChange(minKey, event.target.value)} />
+          </label>
+          <label>
+            최대
+            <input type="number" inputMode="decimal" step={step} min={min} max={max} value={form[maxKey]} onChange={(event) => onChange(maxKey, event.target.value)} />
+          </label>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function PlantManager() {
@@ -112,7 +178,7 @@ export function PlantManager() {
         <div>
           <h1>식물</h1>
           <p className="lede">
-            관리하는 식물을 추가하거나 빼 둡니다. 단계별 기준 일수를 적으면, 그 기간을 넘긴 배치가 모니터링에 나타납니다.
+            관리하는 식물을 추가하거나 빼 둡니다. 단계별 기준 일수를 적으면 그 기간을 넘긴 배치가, 온도·습도·광 범위를 적으면 센서를 벗어난 온실이 모니터링에 나타납니다. 낮 온도는 6시부터 18시 전까지, 밤 온도는 그 나머지 시간에 비교합니다.
           </p>
         </div>
       </header>
@@ -185,6 +251,7 @@ export function PlantManager() {
             </label>
           ))}
         </div>
+        <RangeFields form={form} onChange={(key, value) => setForm({ ...form, [key]: value })} />
       </form>
 
       <section className="sheet">
@@ -223,6 +290,7 @@ function PlantRow({
   const [pending, setPending] = useState(false);
   const climate = climateText(item);
   const stageDays = stageDaysText(item);
+  const thresholds = thresholdText(item);
 
   async function onSave(event: FormEvent) {
     event.preventDefault();
@@ -288,6 +356,7 @@ function PlantRow({
               onChange={(event) => setForm({ ...form, [key]: event.target.value })}
             />
           ))}
+          <RangeFields form={form} onChange={(key, value) => setForm({ ...form, [key]: value })} />
           <button type="submit" className="primary" disabled={pending}>
             저장
           </button>
@@ -305,6 +374,7 @@ function PlantRow({
         <strong>{item.name}</strong>
         <span>
           {item.batchCount}배치{climate ? ` · ${climate}` : ""}
+          {thresholds ? ` · 범위 ${thresholds}` : ""}
           {stageDays ? ` · ${stageDays}` : ""}
         </span>
       </div>

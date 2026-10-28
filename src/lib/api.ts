@@ -1,4 +1,4 @@
-import type { Batch, BatchDetail, Greenhouse, MovementType, Plant, Stage, Summary } from "./types";
+import type { Batch, BatchDetail, Greenhouse, MovementType, Plant, SensorReading, Stage, Summary } from "./types";
 
 type PlantWrite = {
   name: string;
@@ -9,6 +9,14 @@ type PlantWrite = {
   growthDays: number | null;
   spikeDays: number | null;
   bloomDays: number | null;
+  dayTempMin: number | null;
+  dayTempMax: number | null;
+  nightTempMin: number | null;
+  nightTempMax: number | null;
+  humidityMin: number | null;
+  humidityMax: number | null;
+  lightMin: number | null;
+  lightMax: number | null;
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -43,6 +51,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   summary: () => request<Summary>("/api/summary"),
+  sensors: () => request<SensorReading[]>("/api/sensors"),
   greenhouses: () => request<Greenhouse[]>("/api/greenhouses"),
   createGreenhouse: (name: string) =>
     request<{ id: number }>("/api/greenhouses", { method: "POST", body: JSON.stringify({ name }) }),

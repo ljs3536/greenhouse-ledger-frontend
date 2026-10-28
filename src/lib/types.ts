@@ -34,7 +34,24 @@ export type Plant = {
   growthDays: number | null;
   spikeDays: number | null;
   bloomDays: number | null;
+  dayTempMin: number | null;
+  dayTempMax: number | null;
+  nightTempMin: number | null;
+  nightTempMax: number | null;
+  humidityMin: number | null;
+  humidityMax: number | null;
+  lightMin: number | null;
+  lightMax: number | null;
   batchCount: number;
+};
+
+export type SensorReading = {
+  greenhouseId: number;
+  greenhouseName: string;
+  temperature: number;
+  humidity: number;
+  light: number;
+  recordedAt: string;
 };
 
 export type AttentionItem = {
@@ -63,8 +80,19 @@ export type StageQuantity = {
   quantity: number;
 };
 
+export type ClimateAlert = {
+  greenhouseId: number;
+  greenhouseName: string;
+  plantId: number;
+  plantName: string;
+  label: string;
+  value: string;
+  range: string;
+};
+
 export type Summary = {
   attention: AttentionItem[];
+  climate: ClimateAlert[];
   greenhouses: GreenhouseSummary[];
   plants: PlantSummary[];
   stages: StageQuantity[];
@@ -134,6 +162,24 @@ export function stageDaysText(
     plant.bloomDays ? `개화 ${plant.bloomDays}일` : null,
   ].filter((part): part is string => Boolean(part));
   return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+export function thresholdText(plant: Pick<Plant, "dayTempMin" | "dayTempMax" | "nightTempMin" | "nightTempMax" | "humidityMin" | "humidityMax" | "lightMin" | "lightMax">): string | null {
+  const parts = [
+    span("낮", plant.dayTempMin, plant.dayTempMax, "°C", true),
+    span("밤", plant.nightTempMin, plant.nightTempMax, "°C", true),
+    span("습도", plant.humidityMin, plant.humidityMax, "%", false),
+    span("광", plant.lightMin, plant.lightMax, "lx", false),
+  ].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+function span(label: string, min: number | null, max: number | null, unit: string, decimal: boolean): string | null {
+  if (min == null && max == null) return null;
+  const text = (value: number) => (decimal ? value.toFixed(1) : value.toLocaleString("ko-KR"));
+  if (min != null && max != null) return `${label} ${text(min)}–${text(max)}${unit}`;
+  if (min != null) return `${label} ${text(min)}${unit} 이상`;
+  return `${label} ${text(max as number)}${unit} 이하`;
 }
 
 export function climateText(plant: Pick<Plant, "dayTemp" | "nightTemp" | "lightNote">): string | null {
