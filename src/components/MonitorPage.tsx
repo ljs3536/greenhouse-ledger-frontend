@@ -72,7 +72,7 @@ export function MonitorPage() {
           <ul className="attention">
             {summary?.climate.map((item) => (
               <li key={`${item.greenhouseId}-${item.plantId}-${item.label}`}>
-                <Link href={`/batches?greenhouse=${item.greenhouseId}`} className="out">
+                <Link href={`/greenhouses/${item.greenhouseId}`} className="out">
                   <span>
                     <strong>
                       {item.greenhouseName} · {item.plantName}
@@ -162,7 +162,7 @@ export function MonitorPage() {
             {greenhouses.map((greenhouse) => {
               const reading = sensors.find((item) => item.greenhouseId === greenhouse.id);
               return (
-                <Link key={greenhouse.id} href={`/batches?greenhouse=${greenhouse.id}`} className="house-card">
+                <Link key={greenhouse.id} href={`/greenhouses/${greenhouse.id}`} className="house-card">
                   <div className="house-top">
                     <span>온실</span>
                     <em>{greenhouse.batchCount}배치</em>

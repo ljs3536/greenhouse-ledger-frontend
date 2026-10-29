@@ -1,4 +1,4 @@
-import type { Batch, BatchDetail, Greenhouse, MovementType, Plant, SensorReading, Stage, Summary } from "./types";
+import type { Batch, BatchDetail, Controls, Greenhouse, GreenhouseDetail, MovementType, Plant, SensorReading, Stage, Summary } from "./types";
 
 type PlantWrite = {
   name: string;
@@ -58,6 +58,9 @@ export const api = {
   updateGreenhouse: (id: number, name: string) =>
     request<{ ok: boolean }>(`/api/greenhouses/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
   deleteGreenhouse: (id: number) => request<{ ok: boolean }>(`/api/greenhouses/${id}`, { method: "DELETE" }),
+  greenhouse: (id: number) => request<GreenhouseDetail>(`/api/greenhouses/${id}`),
+  updateControls: (id: number, controls: Controls) =>
+    request<Controls>(`/api/greenhouses/${id}/controls`, { method: "PATCH", body: JSON.stringify(controls) }),
   plants: () => request<Plant[]>("/api/plants"),
   createPlant: (input: PlantWrite) =>
     request<{ id: number }>("/api/plants", { method: "POST", body: JSON.stringify(input) }),

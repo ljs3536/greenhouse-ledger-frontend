@@ -45,6 +45,32 @@ export type Plant = {
   batchCount: number;
 };
 
+export type Controls = {
+  heater: boolean;
+  cooler: boolean;
+  vent: boolean;
+  humidifier: boolean;
+  growLight: boolean;
+  shade: boolean;
+};
+
+export type ControlSuggestion = {
+  device: "HEATER" | "COOLER" | "VENT" | "HUMIDIFIER" | "GROW_LIGHT" | "SHADE";
+  label: string;
+  effect: string;
+  plantName: string;
+  reason: string;
+};
+
+export type GreenhouseDetail = {
+  id: number;
+  name: string;
+  sensor: SensorReading | null;
+  controls: Controls;
+  suggestions: ControlSuggestion[];
+  batches: Batch[];
+};
+
 export type SensorReading = {
   greenhouseId: number;
   greenhouseName: string;

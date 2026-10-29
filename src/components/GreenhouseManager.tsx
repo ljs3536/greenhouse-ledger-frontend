@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
 import type { Greenhouse } from "@/lib/types";
@@ -50,7 +51,7 @@ export function GreenhouseManager() {
       <header className="page-head">
         <div>
           <h1>온실</h1>
-          <p className="lede">동의 수는 정해져 있지 않습니다. 새로 쓰는 온실을 여기에 추가합니다.</p>
+          <p className="lede">동의 수는 정해져 있지 않습니다. 상세 화면에서 센서와 냉난방, 환기, 가습, 광 장치를 조작합니다.</p>
         </div>
       </header>
 
@@ -169,10 +170,15 @@ function GreenhouseRow({
   return (
     <li>
       <div>
-        <strong>{item.name}</strong>
+        <strong>
+          <Link href={`/greenhouses/${item.id}`}>{item.name}</Link>
+        </strong>
         <span>{item.batchCount}배치</span>
       </div>
       <div className="row-actions">
+        <Link href={`/greenhouses/${item.id}`} className="ghost">
+          상세
+        </Link>
         <button type="button" className="ghost" onClick={() => setEditing(true)} disabled={pending}>
           이름 변경
         </button>
